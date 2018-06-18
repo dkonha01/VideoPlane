@@ -1,0 +1,218 @@
+<!doctype html>
+<html lang="en">
+<head>
+	<title>Video Plane</title>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+	<link rel=stylesheet href="css/base.css"/>
+</head>
+<body>
+
+<script src="js/Three.js"></script>
+<script src="js/Detector.js"></script>
+<script src="js/Stats.js"></script>
+<script src="js/OrbitControls.js"></script>
+<script src="js/THREEx.KeyboardState.js"></script>
+<script src="js/THREEx.FullScreen.js"></script>
+<script src="js/THREEx.WindowResize.js"></script>
+
+<!-- jQuery code to display an information button and box when clicked. -->
+<script src="js/jquery-1.9.1.js"></script>
+<script src="js/jquery-ui.js"></script>
+<link rel=stylesheet href="css/jquery-ui.css" />
+<link rel=stylesheet href="css/info.css"/>
+<script src="js/info.js"></script>
+
+
+
+</div>
+
+<div id="ThreeJS" style="position: absolute; left:0px; top:0px"></div>
+<script>
+
+
+// standard global variables
+var container, scene, camera, renderer, controls, stats;
+var keyboard = new THREEx.KeyboardState();
+
+// custom global variables
+var video, videoImage, videoImageContext, videoTexture, video2, videoImage2, videoImageContext2, videoTexture2, movieScreen2;
+
+init();
+animate();
+
+// FUNCTIONS
+function init()
+{
+	// SCENE
+	scene = new THREE.Scene();
+	// CAMERA
+	var SCREEN_WIDTH = window.innerWidth, SCREEN_HEIGHT = window.innerHeight;
+	var VIEW_ANGLE = 45, ASPECT = SCREEN_WIDTH / SCREEN_HEIGHT, NEAR = 0.1, FAR = 20000;
+	camera = new THREE.PerspectiveCamera( VIEW_ANGLE, ASPECT, NEAR, FAR);
+	scene.add(camera);
+	camera.position.set(0,150,400);
+	camera.lookAt(scene.position);
+	// RENDERER
+	if ( Detector.webgl )
+		renderer = new THREE.WebGLRenderer( {antialias:true} );
+	else
+		renderer = new THREE.CanvasRenderer();
+	renderer.setSize(SCREEN_WIDTH, SCREEN_HEIGHT);
+	container = document.getElementById( 'ThreeJS' );
+	container.appendChild( renderer.domElement );
+	// CONTROLS
+	controls = new THREE.OrbitControls( camera, renderer.domElement );
+	// EVENTS
+	THREEx.WindowResize(renderer, camera);
+	THREEx.FullScreen.bindKey({ charCode : 'm'.charCodeAt(0) });
+	// STATS
+	stats = new Stats();
+	stats.domElement.style.position = 'absolute';
+	stats.domElement.style.bottom = '0px';
+	stats.domElement.style.zIndex = 100;
+	container.appendChild( stats.domElement );
+	// LIGHT
+	var light = new THREE.PointLight(0xffffff);
+	light.position.set(0,250,0);
+	scene.add(light);
+	// FLOOR
+	var floorTexture = new THREE.ImageUtils.loadTexture( 'images/s_c_eye_disk.jpg' );
+	floorTexture.wrapS = floorTexture.wrapT = THREE.RepeatWrapping;
+	floorTexture.repeat.set( 10, 10 );
+	var floorMaterial = new THREE.MeshBasicMaterial( { map: floorTexture, side: THREE.DoubleSide } );
+	var floorGeometry = new THREE.PlaneGeometry(1000, 1000, 10, 10);
+	var floor = new THREE.Mesh(floorGeometry, floorMaterial);
+	var floor2 = new THREE.Mesh(floorGeometry, floorMaterial);
+	floor.position.y = -0.5;
+	floor2.position.y = 0.5;
+	floor.rotation.x = Math.PI / 2;
+	floor2.rotation.x = Math.PI / 4;
+	scene.add(floor);
+	scene.add(floor2);
+
+
+
+	floor.position.y = -0.5;
+	floor.rotation.x = Math.PI / 2;
+	scene.add(floor);
+	// SKYBOX/FOG
+	var skyBoxGeometry = new THREE.CubeGeometry( 10000, 10000, 10000 );
+	var skyBoxMaterial = new THREE.MeshBasicMaterial( { color: 0x9999ff, side: THREE.BackSide } );
+	var skyBox = new THREE.Mesh( skyBoxGeometry, skyBoxMaterial );
+	// scene.add(skyBox);
+	scene.fog = new THREE.FogExp2( 0x9999ff, 0.00025 );
+
+
+	video = document.createElement( 'video' );
+        video.src = "videos/MoE.mp4";
+	//video.src = "https://res.cloudinary.com/de3c6e2g5/video/upload/v1506309724/MoE_lck9im.mp4";
+	video.load(); // must call after setting/changing source
+	video.play();
+	video.loop = true;
+
+
+
+	videoImage = document.createElement( 'canvas' );
+	videoImage.width = 320;
+	videoImage.height = 320;
+
+	videoImageContext = videoImage.getContext( '2d' );
+	// background color if no video present
+	videoImageContext.fillStyle = '#000000';
+	videoImageContext.fillRect( 0, 0, videoImage.width, videoImage.height );
+
+	videoTexture = new THREE.Texture( videoImage );
+	videoTexture.minFilter = THREE.LinearFilter;
+	videoTexture.magFilter = THREE.LinearFilter;
+
+	var movieMaterial = new THREE.MeshBasicMaterial( { map: videoTexture, overdraw: true, side:THREE.DoubleSide } );
+	// the geometry on which the movie will be displayed;
+	// 		movie image will be scaled to fit these dimensions.
+	var movieGeometry = new THREE.PlaneGeometry( 240, 100, 4, 4 );
+	var movieScreen = new THREE.Mesh( movieGeometry, movieMaterial );
+
+	movieScreen.position.set(0,50,0);
+	scene.add(movieScreen);
+
+        video2 = document.createElement( 'video' );
+        video2.src = "videos/op.mp4";
+	//video2.src = "https://res.cloudinary.com/de3c6e2g5/video/upload/v1506310021/op_gfaan0.mp4";
+
+	video2.load(); // must call after setting/changing source
+	video2.play();
+        video2.loop = true;
+
+
+	videoImage2 = document.createElement( 'canvas' );
+	videoImage2.width = 320;
+	videoImage2.height = 320;
+
+	videoImageContext2 = videoImage2.getContext( '2d' );
+	// background color if no video present
+	videoImageContext2.fillStyle = '#000000';
+	videoImageContext2.fillRect( 0, 0, videoImage2.width, videoImage2.height );
+
+	videoTexture2 = new THREE.Texture( videoImage2 );
+	videoTexture2.minFilter = THREE.LinearFilter;
+	videoTexture2.magFilter = THREE.LinearFilter;
+
+	///////
+
+        var movieMaterial2 = new THREE.MeshBasicMaterial( { map: videoTexture2, overdraw: true, side:THREE.DoubleSide } );
+	var movieGeometry2 = new THREE.PlaneGeometry( 240, 100, 4, 4 );
+
+        movieScreen2 = new THREE.Mesh( movieGeometry2, movieMaterial2 );
+	movieScreen2.position.set(200, 50, 150);
+	scene.add(movieScreen2);
+
+	camera.position.set(50,150,200);
+	camera.lookAt(movieScreen.position);
+
+
+}
+
+function animate()
+{
+    requestAnimationFrame( animate );
+	render();
+	update();
+}
+
+function update()
+{
+
+	if ( keyboard.pressed("r") )
+		scene.remove(movieScreen2);
+
+	if ( keyboard.pressed("p") )
+		//video.play();
+	    scene.add(movieScreen2);
+
+	controls.update();
+	stats.update();
+}
+
+function render()
+{
+	if ( video.readyState === video.HAVE_ENOUGH_DATA )
+	{
+		videoImageContext.drawImage( video, 0, 0 );
+		if ( videoTexture )
+			videoTexture.needsUpdate = true;
+	}
+
+	if ( video2.readyState === video2.HAVE_ENOUGH_DATA )
+	{
+		videoImageContext2.drawImage( video2, 0, 0 );
+		if ( videoTexture2 )
+			videoTexture2.needsUpdate = true;
+	}
+
+	renderer.render( scene, camera );
+}
+
+</script>
+
+</body>
+</html>
